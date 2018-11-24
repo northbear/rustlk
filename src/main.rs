@@ -10,7 +10,8 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 fn run_server(ip: &str, ch: mpsc::Receiver<String>) {
-    let listener = TcpListener::bind(ip).unwrap();
+    let listener = TcpListener::bind(&ip)
+        .expect(&format!("cannot bind to ip socket {}", &ip));
 
     thread::spawn(move || {
         loop {
@@ -18,6 +19,15 @@ fn run_server(ip: &str, ch: mpsc::Receiver<String>) {
                 conn_handler(stream, &ch);
             }
         }
+    });
+}
+
+fn run_client(ip: &str, ch: mpsc::Receiver<String>) {
+    let stream = TcpStream::connect(&ip)
+        .expect(&format!("cannot connect to ip {}", &ip));
+
+    thread::spawn(move || {
+                conn_handler(stream, &ch);
     });
 }
 

@@ -1,4 +1,4 @@
-use std::prelude::v1::*;
+// use std::prelude::v1::*;
 
 use std::io;
 use std::io::prelude::*;
@@ -6,8 +6,13 @@ use std::io::prelude::*;
 use std::net::{TcpListener,TcpStream};
 
 use std::thread;
+// use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::time::Duration;
+
+mod config;
+
+// static mut THREAD_EXEC: Arc<bool> = Arc::new(true); 
 
 fn run_server(ip: &str, ch: mpsc::Receiver<String>) {
     let listener = TcpListener::bind(&ip)
@@ -32,6 +37,13 @@ fn run_client(ip: &str, ch: mpsc::Receiver<String>) {
 }
 
 fn main() {
+
+    let conf = config::new();
+    match conf.mode() {
+        Mode::Usage(msg) => println!("{}", msg)
+    }
+    return;
+    
     let (app_side, strm_side) = mpsc::channel();
 
     let _ = run_server("127.0.0.1:7878", strm_side);
@@ -46,7 +58,7 @@ fn main() {
 }
 
 fn conn_handler(mut stream: TcpStream, msgs: &mpsc::Receiver<String>) {
-    let resp = String::from("received\n");
+    let resp = String::from("** received\n");
     stream.set_read_timeout(Some(Duration::from_millis(500))).unwrap();
     
     loop {

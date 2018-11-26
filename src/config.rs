@@ -1,92 +1,75 @@
-extern crate getopts;
+// extern crate getopts;
 
 use std::env;
 use std::net::SocketAddr;
 
-use self::getopts::{Options,Matches};
+// use self::getopts::{Options,Matches};
 
 const USAGE_MESSAGE: &'static str = "\
 Simple single-channel chat utility written in Rust
-Usage: rustlk [ -s IPADDR:PORT | -c IPADDR:PORT | -h ]\
+Usage:
+\trustlk [ -s] IPADDR:PORT
+\trustlk -h
+
+Options:
+\tIPADDR:PORT\trun as client and connect to server at IPADDR:PORT
+\t-s\t\trun as server and bind to IPADDR:PORT
+\t-h\t\tprint help (this page)
 ";
 
 pub enum Mode {
-    Server(SocketAddr),
-    Client(SocketAddr),
-    Usage,
+    Server(String),
+    Client(String),
+    Usage(String),
     WrongConf(String),
 }
 
 pub struct ConfError(pub String);
 
 pub struct Config {
-    options: Options
+    args: Vec<String>
 }
 
 pub fn new() -> Config {
-    Config{ options: setup_options() }
+    let args: Vec<String> = env::args().collect();
+    Config{ args: args }
 }
 
-fn setup_options() -> Options {
-    let mut parser = Options::new();
-    parser.optopt("s", "", "run as server and bind to given socket", "IPADDR:PORT");
-    parser.optopt("c", "", "run as client and connect to server provided", "IPADDR:PORT");
-    parser.optflag("h", "help", "provides usage info");
-    
-    parser
-}
-    
-fn parse_ip(s: String) -> Result<SocketAddr, ConfError> {
-    let sock: SocketAddr = match s.parse() {
-        Ok(addr) => addr,
-        Err(e)   => return Err(ConfError(e.to_string())),
-    };
-    Ok(sock)
-}
 
-fn parse_options(m: Matches) -> Mode {
-    if m.opt_present("h") {
-        return Mode::Usage
+fn valid_ip(s: &String) -> bool {
+    match s.parse::<SocketAddr>() {
+        Ok(_) => true,
+        Err(_) => false,
     }
-    if m.opt_present("s") && m.opt_present("c") {
-        let msg = String::from("only one of client or server modes should be specified");
-        return Mode::WrongConf(msg)
-    }
-    match m.opt_str("s") {
-        Some(bind) => {
-            match parse_ip(bind) {
-                Ok(bind)          => return Mode::Server(bind),
-                Err(ConfError(s)) => return Mode::WrongConf(s),
-            }
-        },
-        None => {}
-    };
-    match m.opt_str("c") {
-        Some(ip) => {
-            match parse_ip(ip) {
-                Ok(ip)          => return Mode::Client(ip),
-                Err(ConfError(s)) => return Mode::WrongConf(s),
-            }
-        },
-        None => {}
-    };
-    Mode::WrongConf(String::from("no required options provided"))
 }
 
 impl Config {
 
     pub fn usage(&self) -> String {
-        self.options.usage(USAGE_MESSAGE)
+        USAGE_MESSAGE.to_string()
     }
     
     pub fn mode(&self) -> Mode {
-        let opts: Vec<String> = env::args().collect();
-        let parser = setup_options();
-
-        let mode: Mode = match parser.parse(&opts[1..]) {
-            Ok(m) => parse_options(m),
-            Err(e) => return Mode::WrongConf(e.to_string()),
-        };
-        mode
+        let opts = &(self.args);
+        
+        if opts.len() == 3 {
+            if opts[1] == "-s" && valid_ip(&opts[2]) {
+                let ipaddr = opts[2].clone();
+                return Mode::Server(ipaddr)
+            } else {
+                return Mode::WrongConf(String::from("wrong parameters given"))
+            }
+        } else if opts.len() == 2 {
+            if opts[1] == "-h" {
+                return Mode::Usage(USAGE_MESSAGE.to_string())
+            } else if valid_ip(&opts[1]) {
+                let ipaddr = opts[1].clone();
+                return Mode::Client(ipaddr)
+            } else {
+                return Mode::WrongConf(String::from("wrong parameters given"))
+            }
+        } else {
+            return Mode::Usage(USAGE_MESSAGE.to_string())
+        }
     }  
 }

@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Igor Yurchenko <harry.urcen@gmail.com>"]
 
 [dependencies]
-tokio = "0.1"
 getopts = "0.2"
+ctrlc = "3.1"
